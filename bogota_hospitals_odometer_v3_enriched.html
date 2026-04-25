@@ -1,0 +1,326 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.wrap { padding: 1rem 0.75rem 2rem; max-width: 700px; margin: 0 auto; font-family: var(--font-sans); }
+.hospital-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+.hospital-bar::-webkit-scrollbar { display: none; }
+.h-btn { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 12px; border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary); cursor: pointer; min-width: 72px; transition: background 0.15s, border-color 0.15s; }
+.h-btn.active { border: 1.5px solid #1D9E75; background: #E1F5EE; }
+.h-btn.active .h-label { color: #0F6E56; font-weight: 500; }
+.h-icon { font-size: 20px; line-height: 1; }
+.h-label { font-size: 11px; color: var(--color-text-secondary); text-align: center; line-height: 1.2; }
+.dial-section { display: flex; flex-direction: column; align-items: center; margin: 1.25rem 0 0.5rem; }
+.dial-svg { width: 100%; max-width: 300px; cursor: grab; }
+.dial-svg:active { cursor: grabbing; }
+.year-display { text-align: center; margin-top: 0.5rem; }
+.year-num { font-size: 28px; font-weight: 500; color: var(--color-text-primary); }
+.admin-badge { display: inline-block; margin-top: 4px; font-size: 11px; padding: 3px 10px; border-radius: var(--border-radius-md); background: #F1EFE8; color: #5F5E5A; font-weight: 500; }
+.admin-badge.lopezadmin { background: #E1F5EE; color: #0F6E56; }
+.admin-badge.future { background: #E6F1FB; color: #185FA5; }
+.drag-hint { font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
+.leds { display: flex; flex-wrap: wrap; gap: 8px; margin: 0.75rem 0; }
+.led { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-secondary); padding: 5px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
+.led-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-border-tertiary); flex-shrink: 0; }
+.led.active { border-color: var(--led-color); }
+.led.active .led-dot { background: var(--led-color); }
+.led.active span { color: var(--color-text-primary); font-weight: 500; }
+.info-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin: 0 0 1rem; min-height: 72px; }
+.info-year-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
+.info-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); line-height: 1.4; }
+.section-label { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin: 0.75rem 0 0.5rem; }
+.timeline { display: flex; flex-direction: column; gap: 6px; }
+.tl-item { display: flex; align-items: flex-start; gap: 10px; padding: 6px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); cursor: pointer; transition: background 0.1s; }
+.tl-item:hover { background: var(--color-background-secondary); }
+.tl-item.selected { border-color: #1D9E75; background: #E1F5EE; }
+.tl-item.zone-b { border-left: 3px solid #1D9E75; }
+.tl-year { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); min-width: 36px; padding-top: 2px; }
+.tl-text { font-size: 13px; color: var(--color-text-primary); line-height: 1.4; }
+.tl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+</style>
+
+<div class="wrap">
+  <div class="hospital-bar" id="hospitalBar"></div>
+  <div class="dial-section">
+    <svg class="dial-svg" viewBox="0 0 300 170" id="dialSvg">
+      <path d="M 20 150 A 130 130 0 0 1 280 150" fill="none" stroke="#D3D1C7" stroke-width="20" stroke-linecap="round"/>
+      <path id="arcZoneB" fill="none" stroke="#1D9E75" stroke-width="20" stroke-linecap="butt" opacity="0.18"/>
+      <path id="arcZoneBHL" fill="none" stroke="#1D9E75" stroke-width="20" stroke-linecap="butt" opacity="0"/>
+      <text x="14" y="168" font-size="10" fill="#888780" font-family="sans-serif" text-anchor="middle">1990</text>
+      <text x="286" y="168" font-size="10" fill="#888780" font-family="sans-serif" text-anchor="middle">2026</text>
+      <g id="needleGroup" style="transform-origin:150px 150px; transform:rotate(-90deg); transition: transform 0.35s cubic-bezier(0.34,1.4,0.64,1);">
+        <line x1="150" y1="150" x2="150" y2="34" stroke="#3C3489" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="150" cy="150" r="7" fill="#3C3489"/>
+        <circle cx="150" cy="150" r="3" fill="white"/>
+      </g>
+    </svg>
+    <div class="drag-hint">Arrastra la aguja · haz clic en la línea de tiempo</div>
+    <div class="year-display">
+      <div class="year-num" id="yearNum">—</div>
+      <div id="adminBadge" class="admin-badge" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="leds" id="leds">
+    <div class="led" data-status="planning"    style="--led-color:#EF9F27"><div class="led-dot"></div><span>Planeación</span></div>
+    <div class="led" data-status="contracting" style="--led-color:#D85A30"><div class="led-dot"></div><span>Contratación</span></div>
+    <div class="led" data-status="execution"   style="--led-color:#1D9E75"><div class="led-dot"></div><span>Ejecución</span></div>
+    <div class="led" data-status="suspended"   style="--led-color:#E24B4A"><div class="led-dot"></div><span>Suspendido</span></div>
+    <div class="led" data-status="delivery"    style="--led-color:#BA7517"><div class="led-dot"></div><span>Entrega</span></div>
+    <div class="led" data-status="future"      style="--led-color:#185FA5"><div class="led-dot"></div><span>Proyección</span></div>
+  </div>
+
+  <div class="info-card">
+    <div class="info-year-label" id="infoYearLabel">Selecciona un hospital y arrastra la aguja</div>
+    <div class="info-title" id="infoTitle" style="color:var(--color-text-secondary);font-weight:400">Elige un hospital para comenzar</div>
+  </div>
+
+  <div class="section-label">Línea de tiempo</div>
+  <div class="timeline" id="timeline"></div>
+</div>
+
+<script>
+const hospitalData = {
+  "Kennedy": [
+    { year: 1999, status: "planning",     title: "Inicio de obras de reforzamiento ala occidental y UCI" },
+    { year: 2006, status: "planning",     title: "Proyecto incorporado al Plan Maestro de Equipamientos de Salud (PMES)" },
+    { year: 2010, status: "contracting",  title: "Contrato original adjudicado a Constructora Herreña Fronpeca" },
+    { year: 2013, status: "suspended",    title: "Contratista abandona la obra; declaratoria de incumplimiento" },
+    { year: 2018, status: "contracting",  title: "Licitación No. 01 adjudicada a Consorcio Quirón; inician contratos de obra y supervisión" },
+    { year: 2020, status: "execution",    title: "Obras reactivadas tras pausa COVID-19; modificación No. 4 incorpora protocolos de bioseguridad" },
+    { year: 2021, status: "execution",    title: "Modificaciones No. 5 y 6 amplían presupuesto ~$56 mil millones y plazo hasta nov. 2022" },
+    { year: 2022, status: "execution",    title: "Modificación No. 7 extiende plazo a abril 2023; proyecto entra en fase final de alistamiento" },
+    { year: 2023, status: "delivery",     title: "Torre de Urgencias entregada (abril) e inaugurada (mayo 9); obra al 100% en sept. 2023" },
+    { year: 2026, status: "future",       title: "Proyección: inauguración de servicios de hemodinamia y cardiovascular" }
+  ],
+  "Usme": [
+    { year: 2006, status: "planning",     title: "Proyecto seleccionado en el PMES; predio 'Rosales Hacienda Bolonia' descartado" },
+    { year: 2018, status: "contracting",  title: "Convenio interadministrativo No. 676500 firmado entre FFDS y Subred Sur" },
+    { year: 2019, status: "contracting",  title: "Convocatoria pública No. 12 abierta; contrato de obra adjudicado a Consorcio CNHU" },
+    { year: 2020, status: "execution",    title: "Contrato llave en mano No. 3843-2020 firmado; inicio de obra tras pausa COVID-19 (mayo)" },
+    { year: 2021, status: "execution",    title: "Fase de construcción inicia oficialmente (marzo); Contraloría reporta hallazgo por incumplimiento de meta" },
+    { year: 2022, status: "execution",    title: "Avance físico al 44.35% a diciembre, por debajo de la meta del 54.54%" },
+    { year: 2023, status: "execution",    title: "Avance del 85.22% en sept.; multa de $319 millones al contratista por retrasos (nov.)" },
+    { year: 2024, status: "execution",    title: "Avance físico del 94%; contratista presenta demanda arbitral contra Subred Sur" },
+    { year: 2025, status: "execution",    title: "Obra y equipamiento superan el 96% de avance; Tribunal de Arbitramento admite demanda" },
+    { year: 2026, status: "future",       title: "Apertura gradual con servicios ambulatorios (feb.); entrega total proyectada junio 2026" }
+  ],
+  "Tunal": [
+    { year: 1990, status: "delivery",     title: "Inauguración del Hospital El Tunal; primera etapa en servicio" },
+    { year: 2006, status: "planning",     title: "Proyecto de ampliación incluido en el PMES" },
+    { year: 2017, status: "contracting",  title: "Convenio interadministrativo No. 1211 firmado para estudios de la USS Tunal" },
+    { year: 2021, status: "contracting",  title: "Convenio 2806257-2021 suscrito; apertura de licitación para torre de urgencias (dic.)" },
+    { year: 2022, status: "execution",    title: "Contratos de obra (5008) y supervisión (5009) firmados; inicio de obras en mayo" },
+    { year: 2023, status: "execution",    title: "Avance del 14.92% en sept.; obras suspendidas en noviembre por crisis del contratista" },
+    { year: 2024, status: "suspended",    title: "Contratista original declara insolvencia; contrato cedido a Consorcio Hospital (feb.)" },
+    { year: 2025, status: "execution",    title: "Avance del 49.73%; estructura de 5 niveles completada; Concejo denuncia paralización (mayo)" },
+    { year: 2026, status: "future",       title: "Avance reportado al 50% (feb.); nueva fecha de entrega propuesta: junio 2026" }
+  ],
+  "Meissen": [
+    { year: 2005, status: "planning",     title: "Formulación del proyecto de reemplazo de la Torre 2" },
+    { year: 2006, status: "contracting",  title: "Convenio interadministrativo inicial para iniciar construcción de Torre 2" },
+    { year: 2012, status: "suspended",    title: "Obra suspendida y contrato liquidado por irregularidades" },
+    { year: 2017, status: "contracting",  title: "Convenio interadministrativo No. 1186 firmado para financiar y reiniciar Torre 2" },
+    { year: 2020, status: "execution",    title: "Contrato No. 6380-2020 adjudicado a Consorcio CAP CP Meissen; obras inician en septiembre" },
+    { year: 2021, status: "execution",    title: "Avance reportado al 95% en agosto; 'pre-entrega' de pisos 4, 5 y 6 en diciembre" },
+    { year: 2022, status: "delivery",     title: "Torre 2 inaugurada oficialmente el 19 de julio de 2022; acta de recibo final en agosto" },
+    { year: 2023, status: "delivery",     title: "Acta de liquidación del contrato firmada de mutuo acuerdo (septiembre)" }
+  ],
+  "Engativá": [
+    { year: 2020, status: "contracting",  title: "DNP contrata consorcio para estructurar el Gran Parque Hospitalario de Engativá como APP" },
+    { year: 2021, status: "execution",    title: "Fase 1 de estructuración completada; proyecto incluido en el POT 'Bogotá Reverdece'" },
+    { year: 2022, status: "execution",    title: "Estudio de mercado, contratos de construcción y supervisión para sede Calle 80 firmados (nov.)" },
+    { year: 2023, status: "contracting",  title: "Contrato APP del Gran Parque Hospitalario de Engativá firmado (jun.); licitación abierta (dic.)" },
+    { year: 2024, status: "suspended",    title: "Licitación suspendida por fallas técnicas y problemas de titularidad del predio; proceso revocado (oct.)" },
+    { year: 2025, status: "planning",     title: "Proyecto reorientado: reforzar estructura actual y construir torre menor (2025–2026)" }
+  ],
+  "Bosa": [
+    { year: 2006, status: "planning",     title: "Hospital de Bosa seleccionado como proyecto de mediano plazo" },
+    { year: 2008, status: "planning",     title: "DADEP cede predio a la Secretaría Distrital de Salud para el hospital" },
+    { year: 2016, status: "contracting",  title: "Contrato con FDN para estructurar proyectos de salud como APP, incluido Bosa (dic.)" },
+    { year: 2019, status: "contracting",  title: "Licitación adjudicada a Inorin/Grupo Ortiz; contrato APP No. 0002 suscrito (oct.)" },
+    { year: 2020, status: "execution",    title: "Sociedad concesionaria constituida; predio entregado al contratista (jul.); inicio de preobras (jun.)" },
+    { year: 2021, status: "execution",    title: "Cierre financiero confirmado (sep.); fase de construcción inicia (sep.); licencia de construcción otorgada (jul.)" },
+    { year: 2022, status: "execution",    title: "Avance del 55.54%; Hospital de Bosa gana premio 'Social Infrastructure of the Year' de Latin Finance" },
+    { year: 2023, status: "delivery",     title: "Obra al 100% en sept.; Hospital de Bosa inaugurado oficialmente el 11 de diciembre de 2023" },
+    { year: 2024, status: "delivery",     title: "Hospital obtiene certificación LEED Silver; primera Obra Voluntaria completada" }
+  ],
+  "Simón Bolívar": [
+    { year: 2006, status: "planning",     title: "Salas de cirugía incluidas en el Plan Maestro de Equipamientos de Salud (PMES)" },
+    { year: 2019, status: "planning",     title: "Identificada obsolescencia del bloque quirúrgico; necesidad de intervención urgente" },
+    { year: 2021, status: "contracting",  title: "Convenio interadministrativo No. 2971182-2021 firmado entre FFDS y Subred Norte (oct.)" },
+    { year: 2022, status: "contracting",  title: "Contrato de obra BYS 163-2022 con Consorcio Santa Ana; inicio de obras (nov.)" },
+    { year: 2023, status: "execution",    title: "Fase de construcción inicia (ene.); avance físico del 5.98%–11% al cierre del año" },
+    { year: 2024, status: "delivery",     title: "Entrega de quirófanos por fases: salas 7-8, 5-6 y 3-4 (feb.–abr.); obra terminada (may.)" },
+    { year: 2025, status: "execution",    title: "Reportes indican avance físico del 28% en obras complementarias (sept.)" },
+    { year: 2026, status: "future",       title: "Habilitación de hospital de contingencia; entrega de dos quirófanos remodelados adicionales (abr.)" }
+  ],
+  "Tintal": [
+    { year: 2015, status: "delivery",     title: "Inauguración parcial del Hospital El Tintal con servicios básicos (dic.)" },
+    { year: 2016, status: "delivery",     title: "Finalización Hospital Pediátrico Patio Bonito Tintal; apertura de urgencias y hospitalización pediátrica" },
+    { year: 2021, status: "contracting",  title: "Convenio CO1.PCCNTR.2727511-2021 firmado para desarrollar la unidad pediátrica (ago.)" },
+    { year: 2022, status: "execution",    title: "Contratos de consultoría (7959-2022) y obras (8707-2022) suscritos; inicio de modernización" },
+    { year: 2023, status: "delivery",     title: "Obras de adecuación entregadas (sep.); inauguración formal con UCI y quirófanos pediátricos (oct.–nov.)" },
+    { year: 2025, status: "future",       title: "Diseño y licencia de construcción del proyecto mental-pediátrico de Tintal completados" }
+  ]
+};
+
+const icons = { Kennedy:"🏥", Usme:"🏗", Tunal:"🏛", Meissen:"🔬", "Engativá":"🏙", Bosa:"🧱", "Simón Bolívar":"⚕", Tintal:"👶" };
+const statusColors = { planning:"#EF9F27", contracting:"#D85A30", execution:"#1D9E75", suspended:"#E24B4A", delivery:"#BA7517", future:"#185FA5" };
+
+const YEAR_MIN = 1990, YEAR_MAX = 2026;
+const CX = 150, CY = 150, R = 130;
+
+let currentHospital = "Kennedy";
+let currentMilestoneIdx = 0;
+let isDragging = false;
+
+function yearToNeedleRot(year) {
+  const t = (year - YEAR_MIN) / (YEAR_MAX - YEAR_MIN);
+  return -90 + t * 180;
+}
+
+function getArcPoint(needleRot) {
+  const svgAngle = (90 - needleRot) * Math.PI / 180;
+  return { x: CX + R * Math.cos(svgAngle), y: CY - R * Math.sin(svgAngle) };
+}
+
+function posToNeedleRot(svgX, svgY) {
+  const dx = svgX - CX;
+  const dy = CY - svgY;
+  let angle = Math.atan2(dx, dy) * 180 / Math.PI;
+  return Math.max(-90, Math.min(90, angle));
+}
+
+function needleRotToYear(rot) {
+  const t = (rot + 90) / 180;
+  return YEAR_MIN + t * (YEAR_MAX - YEAR_MIN);
+}
+
+function setNeedle(rot) {
+  document.getElementById("needleGroup").style.transform = `rotate(${rot}deg)`;
+}
+
+function arcPathForYears(y1, y2) {
+  const p1 = getArcPoint(yearToNeedleRot(y1));
+  const p2 = getArcPoint(yearToNeedleRot(y2));
+  return `M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${R} ${R} 0 0 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+}
+
+function initZoneB() {
+  const d = arcPathForYears(2020, 2023);
+  document.getElementById("arcZoneB").setAttribute("d", d);
+  document.getElementById("arcZoneBHL").setAttribute("d", d);
+}
+
+function isZoneB(year) { return year >= 2020 && year <= 2023; }
+
+function closestMilestone(year) {
+  const events = hospitalData[currentHospital];
+  let best = 0, bestDist = Infinity;
+  events.forEach((e, i) => {
+    const d = Math.abs(e.year - year);
+    if (d < bestDist) { bestDist = d; best = i; }
+  });
+  return best;
+}
+
+function updateDisplay(milestoneIdx) {
+  currentMilestoneIdx = milestoneIdx;
+  const ev = hospitalData[currentHospital][milestoneIdx];
+  document.getElementById("yearNum").textContent = ev.year;
+  const badge = document.getElementById("adminBadge");
+  badge.style.display = "inline-block";
+  if (isZoneB(ev.year)) {
+    badge.textContent = "Gestión Administración Claudia López";
+    badge.className = "admin-badge lopezadmin";
+  } else if (ev.year >= 2024) {
+    badge.textContent = "Siguiente administración";
+    badge.className = "admin-badge future";
+  } else {
+    badge.textContent = "Antes de 2020";
+    badge.className = "admin-badge";
+  }
+  document.getElementById("infoYearLabel").textContent = ev.year;
+  document.getElementById("infoTitle").textContent = ev.title;
+  document.getElementById("infoTitle").style.color = "";
+  document.getElementById("infoTitle").style.fontWeight = "500";
+  document.querySelectorAll(".led").forEach(l => l.classList.toggle("active", l.dataset.status === ev.status));
+  document.getElementById("arcZoneBHL").style.opacity = isZoneB(ev.year) ? "0.55" : "0";
+  document.querySelectorAll(".tl-item").forEach((el, i) => el.classList.toggle("selected", i === milestoneIdx));
+  setNeedle(yearToNeedleRot(ev.year));
+}
+
+function buildHospitalBar() {
+  const bar = document.getElementById("hospitalBar");
+  bar.innerHTML = "";
+  Object.keys(hospitalData).forEach(name => {
+    const btn = document.createElement("button");
+    btn.className = "h-btn" + (name === currentHospital ? " active" : "");
+    btn.innerHTML = `<span class="h-icon">${icons[name]||"🏥"}</span><span class="h-label">${name}</span>`;
+    btn.addEventListener("click", () => selectHospital(name));
+    bar.appendChild(btn);
+  });
+}
+
+function buildTimeline() {
+  const tl = document.getElementById("timeline");
+  tl.innerHTML = "";
+  hospitalData[currentHospital].forEach((ev, i) => {
+    const item = document.createElement("div");
+    item.className = "tl-item" + (isZoneB(ev.year) ? " zone-b" : "") + (i === currentMilestoneIdx ? " selected" : "");
+    item.innerHTML = `<div class="tl-dot" style="background:${statusColors[ev.status]||'#888'}"></div><div class="tl-year">${ev.year}</div><div class="tl-text">${ev.title}</div>`;
+    item.addEventListener("click", () => updateDisplay(i));
+    tl.appendChild(item);
+  });
+}
+
+function selectHospital(name) {
+  currentHospital = name;
+  buildHospitalBar();
+  buildTimeline();
+  updateDisplay(0);
+}
+
+const dialSvg = document.getElementById("dialSvg");
+
+function getSVGCoords(e) {
+  const rect = dialSvg.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: (clientX - rect.left) / rect.width * 300, y: (clientY - rect.top) / rect.height * 170 };
+}
+
+function handleMove(e) {
+  if (!isDragging) return;
+  e.preventDefault();
+  const { x, y } = getSVGCoords(e);
+  const rot = posToNeedleRot(x, y);
+  const year = needleRotToYear(rot);
+  updateDisplay(closestMilestone(year));
+}
+
+dialSvg.addEventListener("mousedown", e => { isDragging = true; handleMove(e); });
+window.addEventListener("mousemove", handleMove);
+window.addEventListener("mouseup", () => { isDragging = false; });
+dialSvg.addEventListener("touchstart", e => { isDragging = true; handleMove(e); }, { passive: false });
+window.addEventListener("touchmove", e => { if (isDragging) { e.preventDefault(); handleMove(e); } }, { passive: false });
+window.addEventListener("touchend", () => { isDragging = false; });
+
+let touchStartX = 0;
+const bar = document.getElementById("hospitalBar");
+bar.addEventListener("touchstart", e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+bar.addEventListener("touchend", e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 60) {
+    const names = Object.keys(hospitalData);
+    const idx = names.indexOf(currentHospital);
+    const next = dx < 0 ? Math.min(idx+1, names.length-1) : Math.max(idx-1, 0);
+    selectHospital(names[next]);
+  }
+}, { passive: true });
+
+initZoneB();
+buildHospitalBar();
+buildTimeline();
+updateDisplay(0);
+</script>
