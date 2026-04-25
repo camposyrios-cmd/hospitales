@@ -1,2 +1,0 @@
-# hospitales
-Hospitales C
